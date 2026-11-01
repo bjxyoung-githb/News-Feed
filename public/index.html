@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1d2733">
+<title>News Feed Settings</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{--bg:#f4f1ea;--card:#fffdf8;--ink:#1d2733;--muted:#6b7380;--line:#e2ddd2;--accent:#2f5d8a;--accent-ink:#fff;--ok:#2e7d4f;--bad:#b23b3b}
+  @media (prefers-color-scheme:dark){:root{--bg:#14181e;--card:#1c222a;--ink:#e8e6e1;--muted:#98a0ab;--line:#2d3540;--accent:#6fa3d6;--accent-ink:#0d1117}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+  header h1{font:700 20px/1 Georgia,"Times New Roman",serif;margin:0;letter-spacing:.2px}
+  .badge{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:20px;padding:2px 8px}
+  header .spacer{flex:1}
+  main{max-width:760px;margin:0 auto;padding:16px 14px 110px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:0 0 14px}
+  h2{font:700 13px/1 -apple-system,"Segoe UI",sans-serif;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+  label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+  input[type=text],input[type=number],input[type=password],textarea,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+  textarea{min-height:60px;resize:vertical}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .row>*{flex:1;min-width:120px}
+  button{font:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:9px 14px}
+  button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+  button.small{padding:5px 10px;font-size:13px}
+  button.link{border:none;background:none;color:var(--bad);padding:4px 6px}
+  .topic{border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+  .topic.off{opacity:.55}
+  .topic-head{display:flex;gap:8px;align-items:center}
+  .topic-head input{font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{min-width:46px;text-align:center;padding:6px 8px;border-radius:20px;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer;user-select:none}
+  .chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;margin-bottom:6px}
+  .seg button{flex:1;border:none;border-radius:0;background:var(--bg)}
+  .seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+  .toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+  .toggle:first-of-type{border-top:none}
+  .toggle small{display:block;color:var(--muted);font-size:12px}
+  .sw{position:relative;width:44px;height:26px;flex:none}
+  .sw input{opacity:0;width:0;height:0}
+  .sw span{position:absolute;inset:0;background:var(--line);border-radius:26px;transition:.15s}
+  .sw span:before{content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s}
+  .sw input:checked+span{background:var(--accent)}
+  .sw input:checked+span:before{transform:translateX(18px)}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .status{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:14px}
+  .status dt{color:var(--muted)}
+  .status dd{margin:0}
+  .bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px;justify-content:center;z-index:5}
+  .bar button{flex:1;max-width:240px}
+  #toast{position:fixed;left:50%;bottom:76px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;font-size:14px;display:none;z-index:9;max-width:90vw}
+  #gate{max-width:360px;margin:12vh auto;padding:0 16px}
+  #previewWrap{display:none}
+  #preview{width:100%;height:70vh;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .dirty{box-shadow:0 0 0 2px var(--accent) inset}
+</style>
+</head>
+<body>
+<header>
+  <h1>News Feed</h1><span class="badge" id="ver">v—</span>
+  <span class="spacer"></span>
+  <button class="small" id="lockBtn" hidden>Lock</button>
+</header>
+
+<div id="gate">
+  <section>
+    <h2>Enter PIN</h2>
+    <input type="password" id="pin" placeholder="Your ADMIN_PIN" autocomplete="current-password">
+    <div style="margin-top:12px"><button class="primary" id="unlock" style="width:100%">Unlock</button></div>
+    <div class="hint" id="gateMsg"></div>
+  </section>
+</div>
+
+<main id="app" hidden>
+  <section>
+    <h2>Status</h2>
+    <dl class="status" id="status"></dl>
+  </section>
+
+  <section>
+    <h2>Topics</h2>
+    <div id="topics"></div>
+    <button class="small" id="addTopic">+ Add topic</button>
+    <div class="hint">Search tips: put phrases in "quotes", use OR between alternatives, and -word to leave a word out. If the search box is empty, the topic name is used.</div>
+  </section>
+
+  <section>
+    <h2>Schedule</h2>
+    <div class="seg" id="modeSeg">
+      <button data-mode="times">At set times</button>
+      <button data-mode="interval">Every few hours</button>
+    </div>
+    <div id="timesBox">
+      <label>Send at (local time)</label>
+      <div class="chips" id="hours"></div>
+    </div>
+    <div id="intervalBox">
+      <div class="row">
+        <div><label>Every</label><select id="intervalHours"></select></div>
+        <div><label>Only between</label><select id="activeStart"></select></div>
+        <div><label>and</label><select id="activeEnd"></select></div>
+      </div>
+    </div>
+    <label>On these days</label>
+    <div class="chips" id="days"></div>
+    <label>Time zone</label>
+    <select id="timezone"></select>
+  </section>
+
+  <section>
+    <h2>Delivery</h2>
+    <label>Send to (one email per line)</label>
+    <textarea id="recipients"></textarea>
+    <div class="hint" id="recipHint"></div>
+    <div class="row">
+      <div><label>Max stories per topic</label><input type="number" id="maxPerTopic" min="1" max="25"></div>
+    </div>
+    <div style="margin-top:10px">
+      <div class="toggle"><div>Claude briefing per topic<small id="aiHint">A short summary above each topic's headlines</small></div><label class="sw"><input type="checkbox" id="aiSummary"><span></span></label></div>
+      <div class="toggle"><div>Skip email when nothing is new<small>Otherwise you get an email saying "no new stories"</small></div><label class="sw"><input type="checkbox" id="skipIfEmpty"><span></span></label></div>
+      <div class="toggle"><div>Pause all emails<small>Keeps your settings; nothing is sent until you turn this off</small></div><label class="sw"><input type="checkbox" id="paused"><span></span></label></div>
+    </div>
+  </section>
+
+  <section id="previewWrap">
+    <h2 style="display:flex;align-items:center">Preview <span class="spacer" style="flex:1"></span><button class="small" id="closePreview">Close</button></h2>
+    <iframe id="preview" title="Email preview"></iframe>
+  </section>
+</main>
+
+<div class="bar" id="bar" hidden>
+  <button id="previewBtn">Preview</button>
+  <button id="testBtn">Send test</button>
+  <button class="primary" id="saveBtn">Save</button>
+</div>
+<div id="toast"></div>
+
+<script>
+const BUILD_VERSION = "1.0.0";
+document.getElementById("ver").textContent = "v" + BUILD_VERSION;
+const $ = (id) => document.getElementById(id);
+const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const hourLabel = (h) => (h % 12 || 12) + (h < 12 ? "a" : "p");
+const hourLong = (h) => (h % 12 || 12) + ":00 " + (h < 12 ? "AM" : "PM");
+let S = null, info = null, pin = null, dirty = false;
+
+function store(k, v){ try{ v === undefined ? localStorage.removeItem(k) : localStorage.setItem(k, v); }catch(e){} }
+function load(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+
+function toast(msg, ms = 2600){ const t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", ms); }
+function markDirty(){ dirty = true; $("saveBtn").classList.add("dirty"); }
+
+async function api(path, opts = {}){
+  const res = await fetch(path, { ...opts, headers: { "content-type": "application/json", "x-pin": pin, ...(opts.headers || {}) } });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+  return data;
+}
+
+async function unlock(p){
+  pin = p;
+  try {
+    info = await api("/api/settings");
+    S = info.settings;
+    store("nf_pin", p);
+    $("gate").hidden = true; $("app").hidden = false; $("bar").hidden = false; $("lockBtn").hidden = false;
+    render();
+  } catch (e) {
+    store("nf_pin");
+    $("gateMsg").textContent = e.message;
+    $("gate").hidden = false;
+  }
+}
+
+function fmtTime(iso){
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("en-US", { timeZone: S.timezone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
+}
+
+function renderStatus(){
+  const lr = info.lastRun;
+  const rows = [
+    ["Next email", S.paused ? "Paused" : (info.nextSend ? fmtTime(info.nextSend) : "None scheduled — pick some hours and days")],
+    ["Last email", fmtTime(info.lastSentAt)],
+    ["Last run", lr ? `${fmtTime(lr.at)} — ${lr.status}${lr.stories != null ? " (" + lr.stories + " stories)" : ""}` : "—"],
+  ];
+  $("status").innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
+}
+
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+function renderTopics(){
+  $("topics").innerHTML = S.topics.map((t, i) => `
+    <div class="topic ${t.enabled ? "" : "off"}" data-i="${i}">
+      <div class="topic-head">
+        <input type="text" data-field="name" data-i="${i}" value="${esc(t.name)}" placeholder="Topic name, e.g. Arizona wildfires">
+        <label class="sw" title="On/off"><input type="checkbox" data-field="enabled" data-i="${i}" ${t.enabled ? "checked" : ""}><span></span></label>
+        <button class="link" data-action="del" data-i="${i}" title="Delete topic">✕</button>
+      </div>
+      <label>Search for</label>
+      <input type="text" data-field="query" data-i="${i}" value="${esc(t.query)}" placeholder='e.g. "Prescott Valley" OR Yavapai'>
+      <label>Leave out headlines containing (comma separated)</label>
+      <input type="text" data-field="exclude" data-i="${i}" value="${esc(t.exclude)}" placeholder="e.g. opinion, sponsored">
+    </div>`).join("") || `<div class="hint" style="margin-bottom:10px">No topics yet.</div>`;
+}
+
+function renderSchedule(){
+  const sch = S.schedule;
+  document.querySelectorAll("#modeSeg button").forEach(b => b.classList.toggle("on", b.dataset.mode === sch.mode));
+  $("timesBox").hidden = sch.mode !== "times";
+  $("intervalBox").hidden = sch.mode !== "interval";
+  $("hours").innerHTML = [...Array(24).keys()].map(h => `<span class="chip ${sch.hours.includes(h) ? "on" : ""}" data-hour="${h}">${hourLabel(h)}</span>`).join("");
+  $("days").innerHTML = DAYS.map((d, i) => `<span class="chip ${sch.days.includes(i) ? "on" : ""}" data-day="${i}">${d}</span>`).join("");
+  const opts = (vals, lab, sel) => vals.map(v => `<option value="${v}" ${v === sel ? "selected" : ""}>${lab(v)}</option>`).join("");
+  $("intervalHours").innerHTML = opts([1,2,3,4,6,8,12,24,48,72,168], v => v === 1 ? "1 hour" : v === 168 ? "week" : v % 24 === 0 && v > 24 ? (v/24) + " days" : v + " hours", sch.intervalHours);
+  $("activeStart").innerHTML = opts([...Array(24).keys()], hourLong, sch.activeStart);
+  $("activeEnd").innerHTML = opts([...Array(24).keys()], hourLong, sch.activeEnd);
+  const zones = ["America/Phoenix","America/Los_Angeles","America/Denver","America/Chicago","America/New_York","America/Anchorage","Pacific/Honolulu","UTC"];
+  if (!zones.includes(S.timezone)) zones.unshift(S.timezone);
+  $("timezone").innerHTML = zones.map(z => `<option ${z === S.timezone ? "selected" : ""}>${z}</option>`).join("");
+}
+
+function renderDelivery(){
+  $("recipients").value = S.recipients.join("\n");
+  $("recipHint").textContent = info.defaultRecipient ? `Leave blank to send to ${info.defaultRecipient}.` : "";
+  $("maxPerTopic").value = S.maxPerTopic;
+  $("aiSummary").checked = S.aiSummary;
+  $("aiSummary").disabled = !info.aiAvailable;
+  $("aiHint").textContent = info.aiAvailable ? "A short summary above each topic's headlines" : "Add ANTHROPIC_API_KEY on Netlify to turn this on";
+  $("skipIfEmpty").checked = S.skipIfEmpty;
+  $("paused").checked = S.paused;
+}
+
+function render(){ renderStatus(); renderTopics(); renderSchedule(); renderDelivery(); }
+
+// ---- events (delegated; values via data- attributes) ----
+$("topics").addEventListener("input", e => {
+  const f = e.target.dataset.field, i = +e.target.dataset.i;
+  if (!f) return;
+  S.topics[i][f] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+  if (f === "enabled") e.target.closest(".topic").classList.toggle("off", !e.target.checked);
+  markDirty();
+});
+$("topics").addEventListener("click", e => {
+  const b = e.target.closest("[data-action=del]");
+  if (!b) return;
+  const i = +b.dataset.i;
+  if (!confirmDel(i)) return;
+  S.topics.splice(i, 1); renderTopics(); markDirty();
+});
+function confirmDel(i){ const n = S.topics[i].name || "this topic"; return window.confirm(`Delete ${n}?`); }
+$("addTopic").onclick = () => {
+  S.topics.push({ id: "t" + Date.now(), name: "", query: "", exclude: "", enabled: true });
+  renderTopics(); markDirty();
+  const inputs = $("topics").querySelectorAll('input[data-field=name]'); inputs[inputs.length - 1].focus();
+};
+$("modeSeg").addEventListener("click", e => { const m = e.target.dataset.mode; if (!m) return; S.schedule.mode = m; renderSchedule(); markDirty(); });
+$("hours").addEventListener("click", e => {
+  const h = e.target.dataset.hour; if (h === undefined) return;
+  const n = +h, a = S.schedule.hours;
+  S.schedule.hours = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort((x, y) => x - y);
+  e.target.classList.toggle("on"); markDirty();
+});
+$("days").addEventListener("click", e => {
+  const d = e.target.dataset.day; if (d === undefined) return;
+  const n = +d, a = S.schedule.days;
+  S.schedule.days = a.includes(n) ? a.filter(x => x !== n) : [...a, n].sort();
+  e.target.classList.toggle("on"); markDirty();
+});
+["intervalHours","activeStart","activeEnd"].forEach(id => $(id).onchange = e => { S.schedule[id] = +e.target.value; markDirty(); });
+$("timezone").onchange = e => { S.timezone = e.target.value; markDirty(); };
+$("recipients").oninput = e => { S.recipients = e.target.value.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean); markDirty(); };
+$("maxPerTopic").oninput = e => { S.maxPerTopic = +e.target.value; markDirty(); };
+["aiSummary","skipIfEmpty","paused"].forEach(id => $(id).onchange = e => { S[id] = e.target.checked; markDirty(); });
+
+async function save(quiet){
+  const btn = $("saveBtn"); btn.disabled = true;
+  try {
+    info = await api("/api/settings", { method: "PUT", body: JSON.stringify(S) });
+    S = info.settings; dirty = false; btn.classList.remove("dirty");
+    render(); if (!quiet) toast("Saved");
+  } catch (e) { toast("Save failed: " + e.message, 5000); throw e; }
+  finally { btn.disabled = false; }
+}
+$("saveBtn").onclick = () => save();
+
+$("previewBtn").onclick = async () => {
+  const b = $("previewBtn"); b.disabled = true; b.textContent = "Loading…";
+  try {
+    if (dirty) await save(true);
+    const r = await api("/api/send-now", { method: "POST", body: JSON.stringify({ preview: true }) });
+    if (!r.html) { toast(r.status); return; }
+    $("preview").srcdoc = r.html; $("previewWrap").style.display = "block";
+    $("previewWrap").scrollIntoView({ behavior: "smooth" });
+  } catch (e) { toast("Preview failed: " + e.message, 5000); }
+  finally { b.disabled = false; b.textContent = "Preview"; }
+};
+$("closePreview").onclick = () => $("previewWrap").style.display = "none";
+
+$("testBtn").onclick = async () => {
+  const b = $("testBtn"); b.disabled = true; b.textContent = "Sending…";
+  try {
+    if (dirty) await save(true);
+    const r = await api("/api/send-now", { method: "POST", body: JSON.stringify({}) });
+    toast(r.status === "sent" ? `Test sent to ${(r.to || []).join(", ")}` : r.status, 5000);
+    info = await api("/api/settings"); renderStatus();
+  } catch (e) { toast("Test failed: " + e.message, 5000); }
+  finally { b.disabled = false; b.textContent = "Send test"; }
+};
+
+$("unlock").onclick = () => unlock($("pin").value.trim());
+$("pin").addEventListener("keydown", e => { if (e.key === "Enter") unlock($("pin").value.trim()); });
+$("lockBtn").onclick = () => { store("nf_pin"); location.reload(); };
+window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+
+const saved = load("nf_pin");
+if (saved) { $("gate").hidden = true; unlock(saved); }
+</script>
+</body>
+</html>
