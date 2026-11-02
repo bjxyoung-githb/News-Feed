@@ -117,7 +117,7 @@
     <textarea id="recipients"></textarea>
     <div class="hint" id="recipHint"></div>
     <div class="row">
-      <div><label>Max stories per topic</label><input type="number" id="maxPerTopic" min="1" max="25"></div>
+      <div><label>Max stories per topic (default)</label><input type="number" id="maxPerTopic" min="1" max="25"></div>
     </div>
     <div style="margin-top:10px">
       <div class="toggle"><div>Claude briefing per topic<small id="aiHint">A short summary above each topic's headlines</small></div><label class="sw"><input type="checkbox" id="aiSummary"><span></span></label></div>
@@ -140,7 +140,7 @@
 <div id="toast"></div>
 
 <script>
-const BUILD_VERSION = "1.0.1";
+const BUILD_VERSION = "1.0.2";
 document.getElementById("ver").textContent = "v" + BUILD_VERSION;
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -203,8 +203,12 @@ function renderTopics(){
       </div>
       <label>Search for</label>
       <input type="text" data-field="query" data-i="${i}" value="${esc(t.query)}" placeholder='e.g. "Prescott Valley" OR Yavapai'>
-      <label>Leave out headlines containing (comma separated)</label>
-      <input type="text" data-field="exclude" data-i="${i}" value="${esc(t.exclude)}" placeholder="e.g. opinion, sponsored">
+      <div class="row">
+        <div style="flex:3"><label>Leave out headlines containing (comma separated)</label>
+        <input type="text" data-field="exclude" data-i="${i}" value="${esc(t.exclude)}" placeholder="e.g. opinion, sponsored"></div>
+        <div style="flex:1;min-width:100px"><label>Max stories</label>
+        <input type="number" min="1" max="25" data-field="max" data-i="${i}" value="${t.max ?? ""}" placeholder="${S.maxPerTopic} (global)"></div>
+      </div>
     </div>`).join("") || `<div class="hint" style="margin-bottom:10px">No topics yet.</div>`;
 }
 
@@ -241,7 +245,8 @@ function render(){ renderStatus(); renderTopics(); renderSchedule(); renderDeliv
 $("topics").addEventListener("input", e => {
   const f = e.target.dataset.field, i = +e.target.dataset.i;
   if (!f) return;
-  S.topics[i][f] = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+  S.topics[i][f] = e.target.type === "checkbox" ? e.target.checked
+    : f === "max" ? (e.target.value === "" ? null : +e.target.value) : e.target.value;
   if (f === "enabled") e.target.closest(".topic").classList.toggle("off", !e.target.checked);
   markDirty();
 });
@@ -254,7 +259,7 @@ $("topics").addEventListener("click", e => {
 });
 function confirmDel(i){ const n = S.topics[i].name || "this topic"; return window.confirm(`Delete ${n}?`); }
 $("addTopic").onclick = () => {
-  S.topics.push({ id: "t" + Date.now(), name: "", query: "", exclude: "", enabled: true });
+  S.topics.push({ id: "t" + Date.now(), name: "", query: "", exclude: "", enabled: true, max: null });
   renderTopics(); markDirty();
   const inputs = $("topics").querySelectorAll('input[data-field=name]'); inputs[inputs.length - 1].focus();
 };
@@ -274,7 +279,10 @@ $("days").addEventListener("click", e => {
 ["intervalHours","activeStart","activeEnd"].forEach(id => $(id).onchange = e => { S.schedule[id] = +e.target.value; markDirty(); });
 $("timezone").onchange = e => { S.timezone = e.target.value; markDirty(); };
 $("recipients").oninput = e => { S.recipients = e.target.value.split(/[\n,;]+/).map(x => x.trim()).filter(Boolean); markDirty(); };
-$("maxPerTopic").oninput = e => { S.maxPerTopic = +e.target.value; markDirty(); };
+$("maxPerTopic").oninput = e => {
+  S.maxPerTopic = +e.target.value; markDirty();
+  document.querySelectorAll('input[data-field=max]').forEach(el => el.placeholder = (S.maxPerTopic || "") + " (global)");
+};
 ["aiSummary","skipIfEmpty","paused"].forEach(id => $(id).onchange = e => { S[id] = e.target.checked; markDirty(); });
 
 async function save(quiet){
