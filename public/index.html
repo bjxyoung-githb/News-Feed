@@ -140,7 +140,7 @@
 <div id="toast"></div>
 
 <script>
-const BUILD_VERSION = "1.0.0";
+const BUILD_VERSION = "1.0.1";
 document.getElementById("ver").textContent = "v" + BUILD_VERSION;
 const $ = (id) => document.getElementById(id);
 const DAYS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
@@ -299,6 +299,24 @@ $("previewBtn").onclick = async () => {
   } catch (e) { toast("Preview failed: " + e.message, 5000); }
   finally { b.disabled = false; b.textContent = "Preview"; }
 };
+// Links inside the preview: news sites refuse to load inside a frame,
+// so open articles in a new tab; topic links (#...) just scroll the preview.
+$("preview").addEventListener("load", () => {
+  const doc = $("preview").contentDocument;
+  if (!doc) return;
+  doc.addEventListener("click", e => {
+    const a = e.target.closest("a[href]");
+    if (!a) return;
+    e.preventDefault();
+    const href = a.getAttribute("href");
+    if (href.startsWith("#")) {
+      const el = doc.getElementById(decodeURIComponent(href.slice(1)));
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    } else {
+      window.open(href, "_blank", "noopener");
+    }
+  });
+});
 $("closePreview").onclick = () => $("previewWrap").style.display = "none";
 
 $("testBtn").onclick = async () => {
